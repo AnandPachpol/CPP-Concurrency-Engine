@@ -20,6 +20,7 @@ public:
     explicit SimpleThreadPool(size_t numThreads) {
         for (size_t i = 0; i < numThreads; ++i) {
             workers.emplace_back([this] {
+                while (true) {
                 std::function<void()> task;
                 {
                     std::unique_lock<std::mutex> lock(mtx);
@@ -29,6 +30,7 @@ public:
                     tasks.pop();
                 } 
                 task(); 
+                }
             });
         }
     }
