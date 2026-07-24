@@ -8,9 +8,6 @@
 #include <chrono>
 #include <iomanip>
 
-// =============================================================================
-// THE ENGINE: SimpleThreadPool
-// =============================================================================
 class SimpleThreadPool {
 private:
     std::vector<std::thread> workers;
@@ -23,17 +20,15 @@ public:
     explicit SimpleThreadPool(size_t numThreads) {
         for (size_t i = 0; i < numThreads; ++i) {
             workers.emplace_back([this] {
-                //while (true) {
-                    std::function<void()> task;
-                    {
-                        std::unique_lock<std::mutex> lock(mtx);
-                        cv.wait(lock, [this] { return stop || !tasks.empty(); });
-                        if (stop && tasks.empty()) return; 
-                        task = std::move(tasks.front());
-                        tasks.pop();
-                    } 
-                    task(); 
-                //}
+                std::function<void()> task;
+                {
+                    std::unique_lock<std::mutex> lock(mtx);
+                    cv.wait(lock, [this] { return stop || !tasks.empty(); });
+                    if (stop && tasks.empty()) return; 
+                    task = std::move(tasks.front());
+                    tasks.pop();
+                } 
+                task(); 
             });
         }
     }
@@ -58,9 +53,6 @@ public:
     }
 };
 
-// =============================================================================
-// THE WORKLOAD: Sieve of Eratosthenes
-// =============================================================================
 long long countPrimes(uint32_t limit) {
     if (limit < 2) return 0;
     std::vector<bool> is_composite(limit + 1, false);
@@ -80,9 +72,6 @@ long long countPrimes(uint32_t limit) {
     return count;
 }
 
-// =============================================================================
-// MAIN EXECUTION
-// =============================================================================
 int main() {
     constexpr uint32_t SIEVE_LIMIT = 5000000;
     constexpr int NUM_TASKS = 8;
@@ -92,9 +81,6 @@ int main() {
     std::cout << "========================================\n";
     std::cout << "Workload: Sieve up to " << SIEVE_LIMIT << " (" << NUM_TASKS << " times)\n\n";
 
-    // -------------------------------------------------------------------------
-    // MODE 1: NORMAL / SEQUENTIAL MODE
-    // -------------------------------------------------------------------------
     std::cout << "Running Normal Mode (Sequential)..." << std::endl;
     std::vector<long long> seqResults;
     seqResults.reserve(NUM_TASKS);
@@ -108,9 +94,6 @@ int main() {
     
     std::cout << "  Normal Mode Finished! Time: " << seqMs << " ms\n\n";
 
-    // -------------------------------------------------------------------------
-    // MODE 2: MULTI-THREADED / POOL MODE
-    // -------------------------------------------------------------------------
     std::cout << "Running Thread Pool Mode (8 Workers)..." << std::endl;
     std::vector<long long> parResults(NUM_TASKS, 0);
 
@@ -122,15 +105,12 @@ int main() {
                 parResults[i] = countPrimes(SIEVE_LIMIT);
             });
         }
-    } // Destructor blocks until all 8 workers finish
+    } 
     auto parEnd = std::chrono::high_resolution_clock::now();
     auto parMs = std::chrono::duration_cast<std::chrono::milliseconds>(parEnd - parStart).count();
 
     std::cout << "  Thread Pool Mode Finished! Time: " << parMs << " ms\n\n";
 
-    // -------------------------------------------------------------------------
-    // FINAL RESULTS & COMPARISON
-    // -------------------------------------------------------------------------
     double speedup = static_cast<double>(seqMs) / static_cast<double>(parMs);
 
     std::cout << "========================================\n";
@@ -140,7 +120,6 @@ int main() {
     std::cout << "  Thread Pool Execution Time : " << parMs << " ms\n";
     std::cout << "  Calculated Speedup Factor  : " << std::fixed << std::setprecision(2) << speedup << "x\n";
     
-    // Check for correctness
     bool pass = true;
     for(int i = 0; i < NUM_TASKS; ++i) {
         if(seqResults[i] != parResults[i]) pass = false;
